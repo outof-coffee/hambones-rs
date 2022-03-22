@@ -1,0 +1,58 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: api-outof-coffee-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "PUT, GET, POST, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  rules:
+    - host: api.outof.coffee
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: api-outof-coffee
+                port:
+                  number: 80
+  tls:
+    - secretName: api-outof-coffee-cert
+      hosts:
+        - api.outof.coffee
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-outof-coffee
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: api-outof-coffee
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-outof-coffee
+spec:
+  selector:
+    matchLabels:
+      app: api-outof-coffee
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: api-outof-coffee
+    spec:
+      containers:
+        - name: api-outof-coffee
+          image: ${{ secrets.HAMBONES_REGISTRY }}/hambones:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
